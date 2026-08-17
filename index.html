@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local 360° Repository Viewer</title>
+
+  <!-- Marzipano Library -->
+  <script src="https://www.marzipano.net/demos/sample-tour/vendor/marzipano.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #f6f8fa;
+      color: #24292f;
+    }
+
+    /* Sidebar Navigation */
+    #sidebar {
+      width: 320px;
+      background: #ffffff;
+      border-right: 1px solid #d0d7de;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid #d0d7de;
+      background: #f6f8fa;
+    }
+
+    .header h1 {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+
+    #search-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    #search-input:focus {
+      border-color: #0969da;
+      box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+    }
+
+    #location-list {
+      list-style: none;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    .location-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid #d0d7de;
+      cursor: pointer;
+      text-transform: capitalize;
+      transition: background 0.2s ease;
+    }
+
+    .location-item:hover {
+      background-color: #f3f4f6;
+    }
+
+    .location-item.active {
+      background-color: #ddf4ff;
+      color: #0969da;
+      font-weight: 600;
+      border-left: 4px solid #0969da;
+    }
+
+    /* Viewer Area */
+    #pano-container {
+      flex-grow: 1;
+      position: relative;
+      background: #000;
+    }
+
+    #pano {
+      width: 100%;
+      height: 100%;
+    }
+
+    #status-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ffffff;
+      font-size: 1.1rem;
+      text-align: center;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="header">
+      <h1>Kyradai / Tour</h1>
+      <input type="text" id="search-input" placeholder="Search locations..." oninput="filterLocations()" />
+    </div>
+    <ul id="location-list"></ul>
+  </div>
+
+  <div id="pano-container">
+    <div id="pano"></div>
+    <div id="status-overlay">Scanning repository locations...</div>
+  </div>
+
+  <script>
+    // GitHub target repository settings
+    const REPO_OWNER = 'kyradai';
+    const REPO_NAME = 'tour';
+    const BRANCH = 'main';
+    
+    // GitHub REST API endpoint to scan the repository root directory
+    const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents?ref=${BRANCH}`;
+
+    let locations = [];
+    let viewer = null;
+
+    // Initialize Marzipano Viewer
+    const panoElement = document.getElementById('pano');
+    const viewerOpts = { controls: { mouseViewMode: 'drag' } };
+    viewer = new Marzipano.Viewer(panoElement, viewerOpts);
+
+    // Scan GitHub repository via REST API
+    async function scanRepository() {
+      const statusElement = document.getElementById('status-overlay');
+      
+      try {
+        const response = await fetch(API_URL, {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`GitHub API request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Extract folder locations (filtering out non-directory items like README.md)
+        locations = data
+          .filter(item => item.type === 'dir')
+          .map(folder => ({
+            name: folder.name.replace(/-/g, ' '),
+            slug: folder.name
+          }));
+
+        if (locations.length === 0) {
+          statusElement.textContent = 'No location folders found in this repository.';
+          return;
+        }
+
+        renderList(locations);
+        statusElement.textContent = 'Select a location from the sidebar to view';
+      } catch (error) {
+        console.error('Error fetching repo data:', error);
+        statusElement.textContent = 'Failed to load repo data. Check console for details.';
+      }
+    }
+
+    // Render location items to the sidebar
+    function renderList(items) {
+      const listContainer = document.getElementById('location-list');
+      listContainer.innerHTML = '';
+
+      if (items.length === 0) {
+        listContainer.innerHTML = '<li style="padding:16px; color:#57606a;">No matching locations</li>';
+        return;
+      }
+
+      items.forEach(loc => {
+        const li = document.createElement('li');
+        li.className = 'location-item';
+        li.textContent = loc.name;
+        li.onclick = () => loadLocationPano(loc.slug, li);
+        listContainer.appendChild(li);
+      });
+    }
+
+    // Filter location list
+    function filterLocations() {
+      const query = document.getElementById('search-input').value.toLowerCase();
+      const filtered = locations.filter(loc => loc.name.toLowerCase().includes(query));
+      renderList(filtered);
+    }
+
+    // Fetch and render the 360 panorama using GitHub's raw content CDN
+    function loadLocationPano(folderSlug, element) {
+      document.querySelectorAll('.location-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+      document.getElementById('status-overlay').style.display = 'none';
+
+      // Pull raw image file directly via raw.githubusercontent.com
+      const imageUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${folderSlug}/pano.jpg`;
+
+      const source = Marzipano.ImageUrlSource.fromString(imageUrl);
+      const geometry = new Marzipano.EquirectGeometry([{ width: 4000 }]);
+      const limiter = Marzipano.RectilinearView.limit.traditional(1024, 100 * Math.PI / 180);
+      const view = new Marzipano.RectilinearView({ yaw: 0, pitch: 0, fov: Math.PI / 2 }, limiter);
+
+      const scene = viewer.createScene({
+        source: source,
+        geometry: geometry,
+        view: view
+      });
+
+      scene.switchTo();
+    }
+
+    // Initiate scan on page load
+    scanRepository();
+  </script>
+</body>
+</html>
