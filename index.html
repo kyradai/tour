@@ -16,10 +16,9 @@
       background-color: #f5ebe0;
       color: #3e362f;
       min-height: 100vh;
-      padding: 40px 20px 20px 20px;
+      padding: 40px 20px 80px 20px; /* Extra bottom padding for floating footer */
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       align-items: center;
     }
 
@@ -104,11 +103,19 @@
       color: #7a6e65;
     }
 
+    /* Floating Fixed Footer */
     footer {
-      margin-top: 40px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #f5ebe0;
+      padding: 16px 20px;
       font-size: 0.9rem;
       color: #7a6e65;
       text-align: center;
+      border-top: 1px solid rgba(201, 184, 163, 0.5);
+      z-index: 100;
     }
   </style>
 </head>
