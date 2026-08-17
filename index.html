@@ -3,11 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kyradai / Tour</title>
-
-  <!-- Marzipano Library -->
-  <script src="https://www.marzipano.net/demos/sample-tour/vendor/marzipano.js"></script>
-
+  <title>Kyradai / Tour Locations</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,110 +13,105 @@
     }
 
     body {
+      background-color: #f5ebe0;
+      color: #3e362f;
+      min-height: 100vh;
+      padding: 40px 20px;
       display: flex;
-      height: 100vh;
-      overflow: hidden;
-      background-color: #f6f8fa;
-      color: #24292f;
+      justify-content: center;
     }
 
-    /* Sidebar Navigation */
-    #sidebar {
-      width: 320px;
-      background: #ffffff;
-      border-right: 1px solid #d0d7de;
-      display: flex;
-      flex-direction: column;
-      z-index: 10;
+    .container {
+      width: 100%;
+      max-width: 600px;
     }
 
     .header {
-      padding: 16px;
-      border-bottom: 1px solid #d0d7de;
-      background: #f6f8fa;
+      margin-bottom: 24px;
+      text-align: center;
     }
 
     .header h1 {
-      font-size: 1.1rem;
-      margin-bottom: 10px;
+      font-size: 1.8rem;
+      color: #5a6b4a;
+      margin-bottom: 12px;
     }
 
     #search-input {
       width: 100%;
-      padding: 8px 12px;
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
+      padding: 12px 16px;
+      border: 2px solid #c9b8a3;
+      border-radius: 10px;
       outline: none;
-      font-size: 0.9rem;
+      font-size: 1rem;
+      background: #fffdf9;
+      color: #3e362f;
+      transition: border-color 0.2s;
     }
 
     #search-input:focus {
-      border-color: #0969da;
-      box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+      border-color: #5a6b4a;
     }
 
     #location-list {
       list-style: none;
-      overflow-y: auto;
-      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .location-item {
-      padding: 14px 16px;
-      border-bottom: 1px solid #d0d7de;
-      cursor: pointer;
-      text-transform: capitalize;
-      transition: background 0.2s ease;
+    .location-card {
+      background: #fffdf9;
+      border: 2px solid #c9b8a3;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
 
-    .location-item:hover {
-      background-color: #f3f4f6;
+    .location-card:hover {
+      transform: translateY(-2px);
+      border-color: #5a6b4a;
+      box-shadow: 0 4px 12px rgba(62, 54, 47, 0.1);
     }
 
-    .location-item.active {
-      background-color: #ddf4ff;
-      color: #0969da;
-      font-weight: 600;
-      border-left: 4px solid #0969da;
-    }
-
-    /* Viewer Area */
-    #pano-container {
-      flex-grow: 1;
-      position: relative;
-      background: #000;
-    }
-
-    #pano {
-      width: 100%;
-      height: 100%;
-    }
-
-    #status-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: #ffffff;
+    .location-title {
       font-size: 1.1rem;
+      font-weight: 700;
+      color: #5a6b4a;
+      text-transform: capitalize;
+    }
+
+    .location-arrow {
+      font-size: 1.2rem;
+      color: #c9b8a3;
+      transition: color 0.2s;
+    }
+
+    .location-card:hover .location-arrow {
+      color: #5a6b4a;
+    }
+
+    .empty-state {
       text-align: center;
-      pointer-events: none;
+      padding: 24px;
+      color: #7a6e65;
     }
   </style>
 </head>
 <body>
 
-  <div id="sidebar">
+  <div class="container">
     <div class="header">
       <h1>Kyradai / Tour</h1>
       <input type="text" id="search-input" placeholder="Search locations..." oninput="filterLocations()" />
     </div>
-    <ul id="location-list"></ul>
-  </div>
 
-  <div id="pano-container">
-    <div id="pano"></div>
-    <div id="status-overlay">Scanning repository locations...</div>
+    <div id="location-list"></div>
   </div>
 
   <script>
@@ -128,101 +119,55 @@
     const REPO_NAME = 'tour';
     const BRANCH = 'main';
 
-    // Known folders in your repository as a fail-safe backup
-    const FALLBACK_FOLDERS = [
+    // Known repository folders fallback
+    const FOLDERS = [
       'playa-de-la-concha',
       'playa-de-los-peligros',
       'playa-del-huevo'
     ];
 
-    let locations = [];
-    let viewer = null;
+    // Build array with direct GitHub directory links
+    const locations = FOLDERS.map(slug => ({
+      name: slug.replace(/-/g, ' '),
+      slug: slug,
+      url: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${slug}`
+    }));
 
-    // Initialize Marzipano
-    const panoElement = document.getElementById('pano');
-    const viewerOpts = { controls: { mouseViewMode: 'drag' } };
-    viewer = new Marzipano.Viewer(panoElement, viewerOpts);
-
-    async function scanRepository() {
-      const statusElement = document.getElementById('status-overlay');
-      const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents?ref=${BRANCH}`;
-
-      try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error('API request failed');
-
-        const data = await response.json();
-        
-        locations = data
-          .filter(item => item.type === 'dir')
-          .map(folder => ({
-            name: folder.name.replace(/-/g, ' '),
-            slug: folder.name
-          }));
-
-        if (locations.length === 0) throw new Error('No folders found via API');
-
-      } catch (error) {
-        console.warn('API fetch failed or rate-limited. Falling back to default repo structure.', error);
-        
-        // Use default folder list if API fetch is blocked
-        locations = FALLBACK_FOLDERS.map(slug => ({
-          name: slug.replace(/-/g, ' '),
-          slug: slug
-        }));
-      }
-
-      renderList(locations);
-      statusElement.textContent = 'Select a location from the sidebar to view';
-    }
+    let filteredLocations = [...locations];
 
     function renderList(items) {
-      const listContainer = document.getElementById('location-list');
-      listContainer.innerHTML = '';
+      const container = document.getElementById('location-list');
+      container.innerHTML = '';
 
       if (items.length === 0) {
-        listContainer.innerHTML = '<li style="padding:16px; color:#57606a;">No matching locations</li>';
+        container.innerHTML = '<div class="empty-state">No matching locations found</div>';
         return;
       }
 
       items.forEach(loc => {
-        const li = document.createElement('li');
-        li.className = 'location-item';
-        li.textContent = loc.name;
-        li.onclick = () => loadLocationPano(loc.slug, li);
-        listContainer.appendChild(li);
+        const card = document.createElement('a');
+        card.className = 'location-card';
+        card.href = loc.url;
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+
+        card.innerHTML = `
+          <span class="location-title">${loc.name}</span>
+          <span class="location-arrow">➔</span>
+        `;
+
+        container.appendChild(card);
       });
     }
 
     function filterLocations() {
       const query = document.getElementById('search-input').value.toLowerCase();
-      const filtered = locations.filter(loc => loc.name.toLowerCase().includes(query));
-      renderList(filtered);
+      filteredLocations = locations.filter(loc => loc.name.toLowerCase().includes(query));
+      renderList(filteredLocations);
     }
 
-    function loadLocationPano(folderSlug, element) {
-      document.querySelectorAll('.location-item').forEach(el => el.classList.remove('active'));
-      element.classList.add('active');
-      document.getElementById('status-overlay').style.display = 'none';
-
-      // Reads image directly relative to GitHub Pages root or raw CDN fallback
-      const imageUrl = `./${folderSlug}/pano.jpg`;
-
-      const source = Marzipano.ImageUrlSource.fromString(imageUrl);
-      const geometry = new Marzipano.EquirectGeometry([{ width: 4000 }]);
-      const limiter = Marzipano.RectilinearView.limit.traditional(1024, 100 * Math.PI / 180);
-      const view = new Marzipano.RectilinearView({ yaw: 0, pitch: 0, fov: Math.PI / 2 }, limiter);
-
-      const scene = viewer.createScene({
-        source: source,
-        geometry: geometry,
-        view: view
-      });
-
-      scene.switchTo();
-    }
-
-    scanRepository();
+    // Initial render
+    renderList(filteredLocations);
   </script>
 </body>
 </html>
