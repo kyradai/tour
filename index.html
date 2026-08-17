@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kyradai / Tour Locations</title>
+  <title>Kyradai / Tour</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,9 +16,11 @@
       background-color: #f5ebe0;
       color: #3e362f;
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 40px 20px 20px 20px;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .container {
@@ -101,6 +103,13 @@
       padding: 24px;
       color: #7a6e65;
     }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.9rem;
+      color: #7a6e65;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -113,6 +122,10 @@
 
     <div id="location-list"></div>
   </div>
+
+  <footer>
+    Made with 💙 for the people I love.
+  </footer>
 
   <script>
     // List of location folder names present in your project
