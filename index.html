@@ -124,40 +124,35 @@
   </div>
 
   <script>
-    // GitHub target repository settings
     const REPO_OWNER = 'kyradai';
     const REPO_NAME = 'tour';
     const BRANCH = 'main';
-    
-    // GitHub REST API endpoint to scan the repository root directory
-    const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents?ref=${BRANCH}`;
+
+    // Known folders in your repository as a fail-safe backup
+    const FALLBACK_FOLDERS = [
+      'playa-de-la-concha',
+      'playa-de-los-peligros',
+      'playa-del-huevo'
+    ];
 
     let locations = [];
     let viewer = null;
 
-    // Initialize Marzipano Viewer
+    // Initialize Marzipano
     const panoElement = document.getElementById('pano');
     const viewerOpts = { controls: { mouseViewMode: 'drag' } };
     viewer = new Marzipano.Viewer(panoElement, viewerOpts);
 
-    // Scan GitHub repository via REST API
     async function scanRepository() {
       const statusElement = document.getElementById('status-overlay');
-      
-      try {
-        const response = await fetch(API_URL, {
-          headers: {
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
+      const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents?ref=${BRANCH}`;
 
-        if (!response.ok) {
-          throw new Error(`GitHub API request failed with status ${response.status}`);
-        }
+      try {
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error('API request failed');
 
         const data = await response.json();
-
-        // Extract folder locations (filtering out non-directory items like README.md)
+        
         locations = data
           .filter(item => item.type === 'dir')
           .map(folder => ({
@@ -165,20 +160,22 @@
             slug: folder.name
           }));
 
-        if (locations.length === 0) {
-          statusElement.textContent = 'No location folders found in this repository.';
-          return;
-        }
+        if (locations.length === 0) throw new Error('No folders found via API');
 
-        renderList(locations);
-        statusElement.textContent = 'Select a location from the sidebar to view';
       } catch (error) {
-        console.error('Error fetching repo data:', error);
-        statusElement.textContent = 'Failed to load repo data. Check console for details.';
+        console.warn('API fetch failed or rate-limited. Falling back to default repo structure.', error);
+        
+        // Use default folder list if API fetch is blocked
+        locations = FALLBACK_FOLDERS.map(slug => ({
+          name: slug.replace(/-/g, ' '),
+          slug: slug
+        }));
       }
+
+      renderList(locations);
+      statusElement.textContent = 'Select a location from the sidebar to view';
     }
 
-    // Render location items to the sidebar
     function renderList(items) {
       const listContainer = document.getElementById('location-list');
       listContainer.innerHTML = '';
@@ -197,21 +194,19 @@
       });
     }
 
-    // Filter location list
     function filterLocations() {
       const query = document.getElementById('search-input').value.toLowerCase();
       const filtered = locations.filter(loc => loc.name.toLowerCase().includes(query));
       renderList(filtered);
     }
 
-    // Fetch and render the 360 panorama using GitHub's raw content CDN
     function loadLocationPano(folderSlug, element) {
       document.querySelectorAll('.location-item').forEach(el => el.classList.remove('active'));
       element.classList.add('active');
       document.getElementById('status-overlay').style.display = 'none';
 
-      // Pull raw image file directly via raw.githubusercontent.com
-      const imageUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${folderSlug}/pano.jpg`;
+      // Reads image directly relative to GitHub Pages root or raw CDN fallback
+      const imageUrl = `./${folderSlug}/pano.jpg`;
 
       const source = Marzipano.ImageUrlSource.fromString(imageUrl);
       const geometry = new Marzipano.EquirectGeometry([{ width: 4000 }]);
@@ -227,7 +222,6 @@
       scene.switchTo();
     }
 
-    // Initiate scan on page load
     scanRepository();
   </script>
 </body>
