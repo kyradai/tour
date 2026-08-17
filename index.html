@@ -115,22 +115,18 @@
   </div>
 
   <script>
-    const REPO_OWNER = 'kyradai';
-    const REPO_NAME = 'tour';
-    const BRANCH = 'main';
-
-    // Known repository folders fallback
+    // List of location folder names present in your project
     const FOLDERS = [
       'playa-de-la-concha',
       'playa-de-los-peligros',
       'playa-del-huevo'
     ];
 
-    // Build array with direct GitHub directory links
+    // Build array with relative subpath routing (/tour/[folder-name])
     const locations = FOLDERS.map(slug => ({
       name: slug.replace(/-/g, ' '),
       slug: slug,
-      url: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${slug}`
+      url: `/tour/${slug}`
     }));
 
     let filteredLocations = [...locations];
@@ -148,8 +144,6 @@
         const card = document.createElement('a');
         card.className = 'location-card';
         card.href = loc.url;
-        card.target = '_blank';
-        card.rel = 'noopener noreferrer';
 
         card.innerHTML = `
           <span class="location-title">${loc.name}</span>
