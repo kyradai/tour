@@ -1368,6 +1368,14 @@
 
             try {
 
+                /*
+                 * GitHub API endpoint:
+                 *
+                 * /repos/kyradai/tour/contents/
+                 *
+                 * This reads the ROOT of the repository.
+                 */
+
                 const apiURL =
                     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
 
@@ -1411,6 +1419,16 @@
                 }
 
 
+                /*
+                 * Only directories count as locations.
+                 *
+                 * index.html
+                 * README.md
+                 * etc.
+                 *
+                 * are ignored.
+                 */
+
                 const folders =
                     files.filter(
                         item =>
@@ -1419,8 +1437,7 @@
 
 
                 /*
-                 * Generamos la URL de forma relativa (./nombre-carpeta/)
-                 * para que funcione dentro de GitHub Pages sin romper la ruta base del repositorio.
+                 * Convert folders into locations.
                  */
 
                 locations =
@@ -1438,13 +1455,17 @@
                                 folder.name,
 
                             url:
-                                `./${encodeURIComponent(
+                                `/${encodeURIComponent(
                                     folder.name
                                 )}/`
 
                         })
                     );
 
+
+                /*
+                 * Alphabetical order.
+                 */
 
                 locations.sort(
                     (a, b) =>
@@ -1458,6 +1479,10 @@
                         )
                 );
 
+
+                /*
+                 * Add numbers after sorting.
+                 */
 
                 locations.forEach(
                     (location, index) => {
