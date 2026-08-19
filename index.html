@@ -1358,8 +1358,111 @@
 
 
         /* =====================================================
-           LOAD FOLDERS FROM GITHUB
+           RECURSIVE SCANNER (DETECTS SUBFOLDERS)
         ===================================================== */
+
+        async function fetchFolderContents(path = "") {
+
+            const apiURL =
+                `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`;
+
+
+            const response =
+                await fetch(
+                    apiURL,
+                    {
+                        cache: "no-store",
+
+                        headers: {
+                            Accept: "application/vnd.github+json"
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    `GitHub API error: HTTP ${response.status}`
+                );
+
+            }
+
+
+            return await response.json();
+
+        }
+
+
+        async function scanDirectory(path = "", parentName = "") {
+
+            const items = await fetchFolderContents(path);
+
+            if (!Array.isArray(items)) return [];
+
+
+            // Ignoramos carpetas ocultas como .git
+            const folders = items.filter(
+                item => item.type === "dir" && !item.name.startsWith(".")
+            );
+
+
+            let detectedLocations = [];
+
+
+            for (const folder of folders) {
+
+                const currentPath = path ? `${path}/${folder.name}` : folder.name;
+
+                const displayName = parentName
+                    ? `${parentName} — ${folder.name.replace(/-/g, " ")}`
+                    : folder.name.replace(/-/g, " ");
+
+
+                // Escaneamos el contenido interno de esta carpeta
+                const subItems = await fetchFolderContents(currentPath);
+
+                const hasSubFolders = subItems.some(
+                    item => item.type === "dir" && !item.name.startsWith(".")
+                );
+
+                const hasIndexHtml = subItems.some(
+                    item => item.name.toLowerCase() === "index.html"
+                );
+
+
+                // Si la carpeta tiene su propio index.html, creamos una tarjeta
+                if (hasIndexHtml) {
+
+                    detectedLocations.push({
+
+                        name: displayName,
+
+                        slug: folder.name,
+
+                        url: `./${currentPath}/`
+
+                    });
+
+                }
+
+
+                // Si tiene subcarpetas (ej. inside, morning), las escaneamos recursivamente
+                if (hasSubFolders) {
+
+                    const nestedLocations = await scanDirectory(currentPath, displayName);
+
+                    detectedLocations = detectedLocations.concat(nestedLocations);
+
+                }
+
+            }
+
+
+            return detectedLocations;
+
+        }
+
 
         async function loadLocations() {
 
@@ -1368,125 +1471,41 @@
 
             try {
 
-                const apiURL =
-                    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
+                locations = await scanDirectory();
 
 
-                const response =
-                    await fetch(
-                        apiURL,
-                        {
-                            cache:
-                                "no-store",
-
-                            headers: {
-                                Accept:
-                                    "application/vnd.github+json"
-                            }
-                        }
-                    );
-
-
-                if (
-                    !response.ok
-                ) {
-
-                    throw new Error(
-                        `GitHub API error: HTTP ${response.status}`
-                    );
-                }
-
-
-                const files =
-                    await response.json();
-
-
-                if (
-                    !Array.isArray(files)
-                ) {
-
-                    throw new Error(
-                        "GitHub returned an invalid response."
-                    );
-                }
-
-
-                const folders =
-                    files.filter(
-                        item =>
-                            item.type === "dir"
-                    );
-
-
-                /*
-                 * Generamos la URL de forma relativa (./nombre-carpeta/)
-                 * para que funcione dentro de GitHub Pages sin romper la ruta base del repositorio.
-                 */
-
-                locations =
-                    folders.map(
-                        folder => ({
-
-                            name:
-                                folder.name
-                                    .replace(
-                                        /-/g,
-                                        " "
-                                    ),
-
-                            slug:
-                                folder.name,
-
-                            url:
-                                `./${encodeURIComponent(
-                                    folder.name
-                                )}/`
-
-                        })
-                    );
-
-
+                // Orden alfabético
                 locations.sort(
                     (a, b) =>
                         a.name.localeCompare(
                             b.name,
                             undefined,
-                            {
-                                sensitivity:
-                                    "base"
-                            }
+                            { sensitivity: "base" }
                         )
                 );
 
 
+                // Asignamos números ordenados (01, 02, 03...)
                 locations.forEach(
                     (location, index) => {
 
                         location.number =
-                            String(
-                                index + 1
-                            ).padStart(
-                                2,
-                                "0"
-                            );
+                            String(index + 1).padStart(2, "0");
+
                     }
                 );
 
 
                 filterLocations();
 
-            }
-            catch (error) {
+            } catch (error) {
 
-                console.error(
-                    "Could not load locations:",
-                    error
-                );
+                console.error("Could not load locations:", error);
 
-                showError(
-                    error.message
-                );
+                showError(error.message);
+
             }
+
         }
 
 
@@ -1544,6 +1563,7 @@
                 `;
 
                 return;
+
             }
 
 
@@ -1633,6 +1653,7 @@
 
                 }
             );
+
         }
 
 
@@ -1662,6 +1683,7 @@
             renderLocations(
                 filteredLocations
             );
+
         }
 
 
@@ -1688,6 +1710,7 @@
                     event.preventDefault();
 
                     searchInput.focus();
+
                 }
 
 
@@ -1701,7 +1724,9 @@
                     filterLocations();
 
                     searchInput.blur();
+
                 }
+
             }
         );
 
