@@ -1279,7 +1279,7 @@
 
 
         /* =====================================================
-           LOADING
+           LOADING & ERROR STATES
         ===================================================== */
 
         function showLoading() {
@@ -1323,10 +1323,6 @@
         }
 
 
-        /* =====================================================
-           ERROR
-        ===================================================== */
-
         function showError(message) {
 
             locationContainer.innerHTML = `
@@ -1358,7 +1354,7 @@
 
 
         /* =====================================================
-           LOAD FOLDERS FROM GITHUB
+           EFFICIENT DIRECTORY SCANNER (SINGLE API CALL)
         ===================================================== */
 
         async function loadLocations() {
@@ -1368,125 +1364,102 @@
 
             try {
 
+                // Fetches the entire directory tree in 1 single HTTP request
                 const apiURL =
-                    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
+                    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/trees/${GITHUB_BRANCH}?recursive=1`;
 
 
                 const response =
                     await fetch(
                         apiURL,
                         {
-                            cache:
-                                "no-store",
+                            cache: "no-store",
 
                             headers: {
-                                Accept:
-                                    "application/vnd.github+json"
+                                Accept: "application/vnd.github+json"
                             }
                         }
                     );
 
 
-                if (
-                    !response.ok
-                ) {
+                if (!response.ok) {
 
                     throw new Error(
                         `GitHub API error: HTTP ${response.status}`
                     );
+
                 }
 
 
-                const files =
-                    await response.json();
+                const data = await response.json();
 
 
-                if (
-                    !Array.isArray(files)
-                ) {
-
-                    throw new Error(
-                        "GitHub returned an invalid response."
-                    );
-                }
+                // Find all index.html files across all folders and subfolders
+                const indexFiles = data.tree.filter(item =>
+                    item.type === "blob" &&
+                    item.path.toLowerCase().endsWith("index.html") &&
+                    item.path.toLowerCase() !== "index.html" // Exclude root index.html
+                );
 
 
-                const folders =
-                    files.filter(
-                        item =>
-                            item.type === "dir"
-                    );
+                locations = indexFiles.map(file => {
+
+                    // Extract folder path by removing '/index.html'
+                    const folderPath = file.path.substring(0, file.path.lastIndexOf("/"));
+
+                    // Format display name (e.g. ebro-reservoir/inside -> ebro reservoir — inside)
+                    const pathSegments = folderPath.split("/");
+
+                    const formattedName = pathSegments
+                        .filter(segment => !segment.startsWith("."))
+                        .map(segment => segment.replace(/-/g, " "))
+                        .join(" — ");
 
 
-                /*
-                 * Generamos la URL de forma relativa (./nombre-carpeta/)
-                 * para que funcione dentro de GitHub Pages sin romper la ruta base del repositorio.
-                 */
+                    return {
+                        name: formattedName,
+                        url: `./${folderPath}/`
+                    };
 
-                locations =
-                    folders.map(
-                        folder => ({
-
-                            name:
-                                folder.name
-                                    .replace(
-                                        /-/g,
-                                        " "
-                                    ),
-
-                            slug:
-                                folder.name,
-
-                            url:
-                                `./${encodeURIComponent(
-                                    folder.name
-                                )}/`
-
-                        })
-                    );
+                });
 
 
+                // Remove non-location files if any
+                locations = locations.filter(loc => loc.name.length > 0);
+
+
+                // Sort alphabetically
                 locations.sort(
                     (a, b) =>
                         a.name.localeCompare(
                             b.name,
                             undefined,
-                            {
-                                sensitivity:
-                                    "base"
-                            }
+                            { sensitivity: "base" }
                         )
                 );
 
 
+                // Assign display numbers (01, 02, 03...)
                 locations.forEach(
                     (location, index) => {
 
                         location.number =
-                            String(
-                                index + 1
-                            ).padStart(
-                                2,
-                                "0"
-                            );
+                            String(index + 1).padStart(2, "0");
+
                     }
                 );
 
 
                 filterLocations();
 
-            }
-            catch (error) {
+            } catch (error) {
 
-                console.error(
-                    "Could not load locations:",
-                    error
-                );
+                console.error("Could not load locations:", error);
 
-                showError(
-                    error.message
-                );
+                showError(error.message);
+
             }
+
         }
 
 
@@ -1544,6 +1517,7 @@
                 `;
 
                 return;
+
             }
 
 
@@ -1633,6 +1607,7 @@
 
                 }
             );
+
         }
 
 
@@ -1662,6 +1637,7 @@
             renderLocations(
                 filteredLocations
             );
+
         }
 
 
@@ -1688,6 +1664,7 @@
                     event.preventDefault();
 
                     searchInput.focus();
+
                 }
 
 
@@ -1701,22 +1678,10 @@
                     filterLocations();
 
                     searchInput.blur();
+
                 }
+
             }
-        );
-
-
-        /* =====================================================
-           REFRESH EVERY 5 MINUTES
-        ===================================================== */
-
-        setInterval(
-            () => {
-
-                loadLocations();
-
-            },
-            5 * 60 * 1000
         );
 
 
