@@ -1,16 +1,43 @@
 const fs = require('fs');
 const path = require('path');
 
-function getDirectories(srcPath) {
-  return fs.readdirSync(srcPath, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('.'))
-    .map(dirent => dirent.name);
+// Helper to recursively find all index.html files inside subdirectories
+function getLocations(dir, baseDir = '') {
+    let results = [];
+    const list = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const item of list) {
+        // Skip hidden folders like .git or .github
+        if (item.name.startsWith('.')) continue;
+
+        const fullPath = path.join(dir, item.name);
+        const relativePath = path.join(baseDir, item.name);
+
+        if (item.isDirectory()) {
+            results = results.concat(getLocations(fullPath, relativePath));
+        } else if (item.name.toLowerCase() === 'index.html' && relativePath !== 'index.html') {
+            // Extract the folder path and format it into a clean display title
+            const folderPath = path.dirname(relativePath).replace(/\\/g, '/');
+            const formattedName = folderPath
+                .split('/')
+                .map(segment => segment.replace(/-/g, ' '))
+                .join(' — ');
+
+            results.push({
+                name: formattedName,
+                url: `./${folderPath}/`
+            });
+        }
+    }
+
+    return results;
 }
 
-const folders = getDirectories('./');
-const data = folders.map(folder => ({
-  name: folder.replace(/-/g, ' '),
-  url: `./${folder}/`
-}));
+const locations = getLocations('./');
 
-fs.writeFileSync('./locations.json', JSON.stringify(data, null, 2));
+// Sort locations alphabetically
+locations.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+// Save to locations.json in the project root
+fs.writeFileSync('./locations.json', JSON.stringify(locations, null, 2));
+console.log(`Generated locations.json with ${locations.length} entries.`);
