@@ -1,0 +1,16 @@
+const fs = require('fs');
+const path = require('path');
+
+function getDirectories(srcPath) {
+  return fs.readdirSync(srcPath, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('.'))
+    .map(dirent => dirent.name);
+}
+
+const folders = getDirectories('./');
+const data = folders.map(folder => ({
+  name: folder.replace(/-/g, ' '),
+  url: `./${folder}/`
+}));
+
+fs.writeFileSync('./locations.json', JSON.stringify(data, null, 2));
