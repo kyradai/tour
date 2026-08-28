@@ -12,6 +12,10 @@
     "url": "./ebro-reservoir-ornithological-centre/night/"
   },
   {
+    "name": "parking ibardin",
+    "url": "./parking-ibardin/"
+  },
+  {
     "name": "playa de la concha",
     "url": "./playa-de-la-concha/"
   },
@@ -28,7 +32,15 @@
     "url": "./playa-del-sardinero/"
   },
   {
+    "name": "plaza apezpiku",
+    "url": "./plaza-apezpiku/"
+  },
+  {
     "name": "puentedey",
     "url": "./puentedey/"
+  },
+  {
+    "name": "vinedo san vicente de la sonsierra",
+    "url": "./vinedo-san-vicente-de-la-sonsierra/"
   }
 ]
