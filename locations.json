@@ -12,6 +12,10 @@
     "url": "./ebro-reservoir-ornithological-centre/night/"
   },
   {
+    "name": "eiffel tower",
+    "url": "./eiffel-tower/"
+  },
+  {
     "name": "parking ibardin",
     "url": "./parking-ibardin/"
   },
@@ -46,6 +50,10 @@
   {
     "name": "puentedey",
     "url": "./puentedey/"
+  },
+  {
+    "name": "tuileries garden",
+    "url": "./tuileries-garden/"
   },
   {
     "name": "vinedo san vicente de la sonsierra",
