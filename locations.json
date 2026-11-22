@@ -1,62 +1,107 @@
 [
   {
-    "name": "ebro reservoir ornithological centre — inside",
+    "name": "Inside",
+    "category": "ebro-reservoir-ornithological-centre",
+    "categoryLabel": "Ebro Reservoir Ornithological Centre",
+    "path": "ebro-reservoir-ornithological-centre/inside",
     "url": "./ebro-reservoir-ornithological-centre/inside/"
   },
   {
-    "name": "eiffel tower",
+    "name": "Eiffel Tower",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "eiffel-tower",
     "url": "./eiffel-tower/"
   },
   {
-    "name": "parking ibardin",
+    "name": "Parking Ibardin",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "parking-ibardin",
     "url": "./parking-ibardin/"
   },
   {
-    "name": "plage de biarritz",
+    "name": "Plage De Biarritz",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "plage-de-biarritz",
     "url": "./plage-de-biarritz/"
   },
   {
-    "name": "plage de st jean de luz",
+    "name": "Plage De St Jean De Luz",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "plage-de-st-jean-de-luz",
     "url": "./plage-de-st-jean-de-luz/"
   },
   {
-    "name": "playa de la concha",
+    "name": "Playa De La Concha",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "playa-de-la-concha",
     "url": "./playa-de-la-concha/"
   },
   {
-    "name": "playa de los peligros",
+    "name": "Playa De Los Peligros",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "playa-de-los-peligros",
     "url": "./playa-de-los-peligros/"
   },
   {
-    "name": "playa del huevo",
+    "name": "Playa Del Huevo",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "playa-del-huevo",
     "url": "./playa-del-huevo/"
   },
   {
-    "name": "playa del sardinero",
+    "name": "Playa Del Sardinero",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "playa-del-sardinero",
     "url": "./playa-del-sardinero/"
   },
   {
-    "name": "plaza apezpiku",
+    "name": "Plaza Apezpiku",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "plaza-apezpiku",
     "url": "./plaza-apezpiku/"
   },
   {
-    "name": "puentedey",
+    "name": "Puentedey",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "puentedey",
     "url": "./puentedey/"
   },
   {
-    "name": "tuileries garden",
+    "name": "Tuileries Garden",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "tuileries-garden",
     "url": "./tuileries-garden/"
   },
   {
-    "name": "urbex — abandoned mall",
+    "name": "Vinedo San Vicente De La Sonsierra",
+    "category": "locations",
+    "categoryLabel": "Locations",
+    "path": "vinedo-san-vicente-de-la-sonsierra",
+    "url": "./vinedo-san-vicente-de-la-sonsierra/"
+  },
+  {
+    "name": "Abandoned Mall",
+    "category": "urbex",
+    "categoryLabel": "Urbex",
+    "path": "urbex/abandoned-mall",
     "url": "./urbex/abandoned-mall/"
   },
   {
-    "name": "urbex — abandoned tunnel — exit",
+    "name": "Abandoned Tunnel — Exit",
+    "category": "urbex",
+    "categoryLabel": "Urbex",
+    "path": "urbex/abandoned-tunnel/exit",
     "url": "./urbex/abandoned-tunnel/exit/"
-  },
-  {
-    "name": "vinedo san vicente de la sonsierra",
-    "url": "./vinedo-san-vicente-de-la-sonsierra/"
   }
 ]
