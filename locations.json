@@ -1,15 +1,11 @@
 [
   {
+    "name": "abandoned mall",
+    "url": "./abandoned-mall/"
+  },
+  {
     "name": "ebro reservoir ornithological centre — inside",
     "url": "./ebro-reservoir-ornithological-centre/inside/"
-  },
-  {
-    "name": "ebro reservoir ornithological centre — morning",
-    "url": "./ebro-reservoir-ornithological-centre/morning/"
-  },
-  {
-    "name": "ebro reservoir ornithological centre — night",
-    "url": "./ebro-reservoir-ornithological-centre/night/"
   },
   {
     "name": "eiffel tower",
