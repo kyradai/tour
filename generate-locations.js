@@ -1,38 +1,109 @@
-const fs = require('fs');
-const path = require('path');
 
-function getLocations(dir, baseDir = '') {
-    let results = [];
-    const list = fs.readdirSync(dir, { withFileTypes: true });
+const fs = require("fs");
+const path = require("path");
 
-    for (const item of list) {
-        if (item.name.startsWith('.')) continue;
+const ROOT = process.cwd();
+const OUTPUT = path.join(ROOT, "locations.json");
 
-        const fullPath = path.join(dir, item.name);
-        const relativePath = path.join(baseDir, item.name);
+const IGNORED = new Set([
+    ".git",
+    ".github",
+    "node_modules"
+]);
 
-        if (item.isDirectory()) {
-            results = results.concat(getLocations(fullPath, relativePath));
-        } else if (item.name.toLowerCase() === 'index.html' && relativePath !== 'index.html') {
-            const folderPath = path.dirname(relativePath).replace(/\\/g, '/');
-            const formattedName = folderPath
-                .split('/')
-                .map(segment => segment.replace(/-/g, ' '))
-                .join(' — ');
+function humanize(value) {
+    return value
+        .replace(/-/g, " ")
+        .replace(/_/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\b\w/g, char => char.toUpperCase());
+}
 
-            results.push({
-                name: formattedName,
-                url: `./${folderPath}/`
-            });
+function getLocations(directory, relative = "") {
+    const results = [];
+
+    const entries = fs.readdirSync(directory, {
+        withFileTypes: true
+    });
+
+    for (const entry of entries) {
+        if (
+            entry.name.startsWith(".") ||
+            IGNORED.has(entry.name)
+        ) continue;
+
+        const absolute = path.join(directory, entry.name);
+        const relativePath = path.posix.join(
+            relative.replace(/\\/g, "/"),
+            entry.name
+        );
+
+        if (entry.isDirectory()) {
+            results.push(
+                ...getLocations(absolute, relativePath)
+            );
+
+            continue;
         }
+
+        if (entry.name.toLowerCase() !== "index.html") {
+            continue;
+        }
+
+        if (!relativePath.includes("/")) {
+            continue;
+        }
+
+        const folder = path.posix.dirname(relativePath);
+        const segments = folder.split("/");
+
+        const isRootCollection = segments.length === 1;
+
+        const category = isRootCollection
+            ? "locations"
+            : segments[0];
+
+        const locationSegments = isRootCollection
+            ? segments
+            : segments.slice(1);
+
+        results.push({
+            name: locationSegments.map(humanize).join(" — "),
+            category,
+            categoryLabel: humanize(category),
+            path: folder,
+            url: `./${folder}/`
+        });
     }
 
     return results;
 }
 
-const locations = getLocations('./');
+const locations = getLocations(ROOT);
 
-locations.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+locations.sort((a, b) => {
+    const categoryOrder = a.category.localeCompare(
+        b.category,
+        undefined,
+        { sensitivity: "base" }
+    );
 
-fs.writeFileSync('./locations.json', JSON.stringify(locations, null, 2));
-console.log(`Generated locations.json with ${locations.length} entries.`);
+    return categoryOrder ||
+        a.name.localeCompare(
+            b.name,
+            undefined,
+            { sensitivity: "base" }
+        );
+});
+
+fs.writeFileSync(
+    OUTPUT,
+    JSON.stringify(locations, null, 2) + "\n"
+);
+
+console.log(
+    `Generated ${locations.length} locations across ${
+        new Set(locations.map(item => item.category)).size
+    } collections.`
+);

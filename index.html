@@ -506,6 +506,39 @@
                 transparent;
         }
 
+        .location-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .collection-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 5px 3px;
+            color: var(--text-soft);
+            font-size: .72rem;
+            font-weight: 750;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .collection-count {
+            flex: 0 0 auto;
+            color: var(--text-faint);
+            font-size: .68rem;
+            font-weight: 600;
+            letter-spacing: .04em;
+        }
+
+        .location-group + .location-group {
+            margin-top: 12px;
+        }
+
         #locations::-webkit-scrollbar {
             width: 5px;
         }
@@ -1403,24 +1436,164 @@
            RENDER LOCATIONS
         ===================================================== */
 
-        function renderLocations(
-            items
-        ) {
-
-            locationContainer.innerHTML =
-                "";
-
+        function getCategoryKey(location) {
 
             if (
-                items.length === 0
+                typeof location.category === "string" &&
+                location.category.trim()
             ) {
+                return location.category.trim();
+            }
+
+            const sourcePath = String(
+                location.path || location.url || ""
+            )
+                .replace(/^\.\//, "")
+                .replace(/\\/g, "/")
+                .replace(/^\/+|\/+$/g, "");
+
+            const segments = sourcePath
+                .split("/")
+                .filter(Boolean);
+
+            // Root-level location pages belong to the default collection.
+            return segments.length > 1
+                ? segments[0]
+                : "locations";
+
+        }
+
+
+        function humanizeFolderName(value) {
+
+            return String(value || "Locations")
+                .split("/")
+                .pop()
+                .replace(/[-_]+/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .replace(/\b\w/g, character => character.toUpperCase());
+
+        }
+
+
+        function getCategoryLabel(location, category) {
+
+            if (
+                typeof location.categoryLabel === "string" &&
+                location.categoryLabel.trim()
+            ) {
+                return location.categoryLabel.trim();
+            }
+
+            return category === "locations"
+                ? "Locations"
+                : humanizeFolderName(category);
+
+        }
+
+
+        function getLocationTitle(location, category) {
+
+            let name = String(location.name || "").trim();
+
+            // Support the older generator format, where the category was
+            // included at the beginning of every location name.
+            const oldPrefix = `${humanizeFolderName(category)} — `;
+
+            if (
+                name.toLowerCase().startsWith(oldPrefix.toLowerCase())
+            ) {
+                name = name.slice(oldPrefix.length);
+            }
+
+            if (name) {
+                return name;
+            }
+
+            const sourcePath = String(
+                location.path || location.url || ""
+            )
+                .replace(/^\.\//, "")
+                .replace(/\\/g, "/")
+                .replace(/\/+$/g, "");
+
+            const segments = sourcePath.split("/").filter(Boolean);
+            const titleSegments = category === "locations"
+                ? segments
+                : segments.slice(1);
+
+            return titleSegments
+                .map(humanizeFolderName)
+                .join(" — ") || "Untitled location";
+
+        }
+
+
+        function createLocationCard(location, index, category) {
+
+            const card = document.createElement("a");
+            card.className = "location";
+            card.href = location.url || "#";
+            card.style.animationDelay = `${index * 45}ms`;
+            card.setAttribute(
+                "aria-label",
+                `Explore ${getLocationTitle(location, category)}`
+            );
+
+            const left = document.createElement("div");
+            left.className = "location-left";
+
+            const number = document.createElement("div");
+            number.className = "number";
+            number.textContent = location.number || String(index + 1).padStart(2, "0");
+
+            const text = document.createElement("div");
+            text.className = "text";
+
+            const title = document.createElement("div");
+            title.className = "title";
+            title.textContent = getLocationTitle(location, category);
+
+            const small = document.createElement("div");
+            small.className = "small";
+            small.textContent = "Explore location";
+
+            text.append(title, small);
+            left.append(number, text);
+
+            const arrow = document.createElement("div");
+            arrow.className = "arrow";
+            arrow.innerHTML = `
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <path d="M5 12h14" />
+                    <path d="m13 6 6 6-6 6" />
+                </svg>
+            `;
+
+            card.append(left, arrow);
+            return card;
+
+        }
+
+
+        function renderLocations(items) {
+
+            locationContainer.innerHTML = "";
+
+            if (items.length === 0) {
 
                 locationContainer.innerHTML = `
-
                     <div class="state">
-
                         <div class="state-icon">
-
                             <svg
                                 width="20"
                                 height="20"
@@ -1429,123 +1602,70 @@
                                 stroke="currentColor"
                                 stroke-width="1.8"
                             >
-
-                                <circle
-                                    cx="11"
-                                    cy="11"
-                                    r="7"
-                                />
-
-                                <path
-                                    d="m20 20-3.5-3.5"
-                                />
-
+                                <circle cx="11" cy="11" r="7" />
+                                <path d="m20 20-3.5-3.5" />
                             </svg>
-
                         </div>
-
-                        <p>
-                            No matching locations found.
-                        </p>
-
+                        <p>No matching locations found.</p>
                     </div>
-
                 `;
 
                 return;
 
             }
 
+            // Group by the first directory level. This automatically supports
+            // future collections such as /urbex/, /photography/, /museums/, etc.
+            const groups = new Map();
 
-            items.forEach(
-                (location, index) => {
+            items.forEach(location => {
 
-                    const card =
-                        document.createElement(
-                            "a"
-                        );
+                const category = getCategoryKey(location);
 
-
-                    card.className =
-                        "location";
-
-
-                    card.href =
-                        location.url;
-
-
-                    card.style.animationDelay =
-                        `${index * 45}ms`;
-
-
-                    card.innerHTML = `
-
-                        <div class="location-left">
-
-                            <div class="number">
-
-                                ${escapeHTML(
-                                    location.number
-                                )}
-
-                            </div>
-
-
-                            <div class="text">
-
-                                <div class="title">
-
-                                    ${escapeHTML(
-                                        location.name
-                                    )}
-
-                                </div>
-
-
-                                <div class="small">
-                                    Explore location
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="arrow">
-
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-
-                                <path
-                                    d="M5 12h14"
-                                />
-
-                                <path
-                                    d="m13 6 6 6-6 6"
-                                />
-
-                            </svg>
-
-                        </div>
-
-                    `;
-
-
-                    locationContainer.appendChild(
-                        card
-                    );
-
+                if (!groups.has(category)) {
+                    groups.set(category, {
+                        label: getCategoryLabel(location, category),
+                        items: []
+                    });
                 }
-            );
+
+                groups.get(category).items.push(location);
+
+            });
+
+            let cardIndex = 0;
+
+            groups.forEach((group, category) => {
+
+                const groupElement = document.createElement("section");
+                groupElement.className = "location-group";
+                groupElement.setAttribute("aria-label", group.label);
+
+                const heading = document.createElement("div");
+                heading.className = "collection-heading";
+
+                const headingTitle = document.createElement("span");
+                headingTitle.textContent = group.label;
+
+                const count = document.createElement("span");
+                count.className = "collection-count";
+                count.textContent = `${group.items.length} ${group.items.length === 1 ? "PLACE" : "PLACES"}`;
+
+                heading.append(headingTitle, count);
+                groupElement.appendChild(heading);
+
+                group.items.forEach(location => {
+                    groupElement.appendChild(
+                        createLocationCard(location, cardIndex, category)
+                    );
+                    cardIndex += 1;
+                });
+
+                locationContainer.appendChild(groupElement);
+
+            });
 
         }
-
 
         /* =====================================================
            SEARCH
@@ -1553,26 +1673,30 @@
 
         function filterLocations() {
 
-            const query =
-                searchInput.value
-                    .trim()
+            const query = searchInput.value
+                .trim()
+                .toLowerCase();
+
+            filteredLocations = locations.filter(location => {
+
+                const category = getCategoryKey(location);
+                const categoryLabel = getCategoryLabel(location, category);
+                const title = getLocationTitle(location, category);
+                const searchableText = [
+                    title,
+                    category,
+                    categoryLabel,
+                    location.path || "",
+                    location.url || ""
+                ]
+                    .join(" ")
                     .toLowerCase();
 
+                return searchableText.includes(query);
 
-            filteredLocations =
-                locations.filter(
-                    location =>
-                        location.name
-                            .toLowerCase()
-                            .includes(
-                                query
-                            )
-                );
+            });
 
-
-            renderLocations(
-                filteredLocations
-            );
+            renderLocations(filteredLocations);
 
         }
 
@@ -1631,3 +1755,4 @@
 
 </body>
 </html>
+
