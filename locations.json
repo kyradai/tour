@@ -1,9 +1,5 @@
 [
   {
-    "name": "abandoned mall",
-    "url": "./abandoned-mall/"
-  },
-  {
     "name": "ebro reservoir ornithological centre — inside",
     "url": "./ebro-reservoir-ornithological-centre/inside/"
   },
@@ -50,6 +46,14 @@
   {
     "name": "tuileries garden",
     "url": "./tuileries-garden/"
+  },
+  {
+    "name": "urbex — abandoned mall",
+    "url": "./urbex/abandoned-mall/"
+  },
+  {
+    "name": "urbex — abandoned tunnel — exit",
+    "url": "./urbex/abandoned-tunnel/exit/"
   },
   {
     "name": "vinedo san vicente de la sonsierra",
